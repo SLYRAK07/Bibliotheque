@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Bibliotheca — Backoffice Dashboard</title>
+
+  <!-- Bootstrap + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b1220;
+      --card: #111a2b;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent2:#38bdf8;
+      --danger:#ef4444;
+    }
+    body{ background:#f5f7fb; }
+    .app{ min-height:100vh; }
+    .sidebar{
+      width: 260px;
+      background: var(--bg);
+      color:#e5e7eb;
+      position: sticky;
+      top:0;
+      height:100vh;
+    }
+    .brand{
+      padding:18px 18px 10px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .brand .title{ font-weight:800; letter-spacing:.3px; }
+    .brand .subtitle{ color: var(--muted); font-size:.85rem; }
+    .nav-link{
+      color:#cbd5e1 !important;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 4px 10px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .nav-link:hover{ background: rgba(255,255,255,.06); }
+    .nav-link.active{
+      background: rgba(34,197,94,.14);
+      color: #eafff3 !important;
+      border: 1px solid rgba(34,197,94,.25);
+    }
+    .topbar{
+      background: #ffffff;
+      border-bottom: 1px solid #e8eef7;
+      position: sticky;
+      top:0;
+      z-index: 20;
+    }
+    .content{ padding: 18px; }
+    section.view{ display:none; }
+    section.view.active{ display:block; }
+
+    .kpi{
+      border: 1px solid #e8eef7;
+      border-radius: 16px;
+      background:#fff;
+      padding: 14px 16px;
+      height:100%;
+    }
+    .kpi .label{ color:#64748b; font-size:.9rem; }
+    .kpi .value{ font-size: 1.6rem; font-weight: 800; }
+    .kpi .icon{
+      width:42px;height:42px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      background:#eef2ff;
+      color:#334155;
+    }
+
+    .card-soft{
+      border: 1px solid #e8eef7;
+      border-radius: 16px;
+      background:#fff;
+    }
+    .card-soft .card-header{
+      background:transparent;
+      border-bottom: 1px solid #e8eef7;
+      font-weight:700;
+    }
+
+    .badge-soft{
+      background:#eef2ff;
+      color:#334155;
+      border: 1px solid #e8eef7;
+      font-weight:600;
+    }
+
+    .table thead th{ color:#475569; font-weight:700; }
+    .muted{ color:#64748b; }
+
+    .btn-accent{
+      background: var(--accent);
+      border-color: var(--accent);
+      color:#052e16;
+      font-weight:700;
+    }
+    .btn-accent:hover{ filter: brightness(.95); }
+
+    .btn-outline-accent{
+      border-color: rgba(34,197,94,.4);
+      color:#15803d;
+      font-weight:700;
+    }
+    .btn-outline-accent:hover{
+      background: rgba(34,197,94,.10);
+      border-color: rgba(34,197,94,.55);
+      color:#166534;
+    }
+
+    .detail-box{
+      border:1px dashed #d7e2f3;
+      border-radius: 16px;
+      padding: 14px;
+      background:#fbfdff;
+    }
+
+    @media (max-width: 991px){
+      .sidebar{ position: fixed; left:-270px; transition: .25s; z-index: 50; }
+      .sidebar.open{ left:0; }
+      .overlay{
+        display:none; position: fixed; inset:0; background: rgba(0,0,0,.35); z-index: 40;
+      }
+      .overlay.show{ display:block; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app d-flex">
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar d-flex flex-column">
+    <div class="brand">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-book-open-reader"></i>
+        <div>
+          <div class="title">Bibliotheca</div>
+          <div class="subtitle">Smart Backoffice Dashboard</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="mt-2">
+      <a class="nav-link active" href="#" data-view="dashboardView">
+        <i class="fa-solid fa-chart-line"></i> Dashboard
+      </a>
+      <a class="nav-link" href="#" data-view="booksView">
+        <i class="fa-solid fa-book"></i> Livres (CRUD)
+      </a>
+      <a class="nav-link" href="#" data-view="authorsView">
+        <i class="fa-solid fa-user-pen"></i> Auteurs
+      </a>
+      <a class="nav-link" href="#" data-view="apiView">
+        <i class="fa-solid fa-cloud-arrow-down"></i> API & Stats
+      </a>
+    </nav>
+
+    <div class="mt-auto p-3 small" style="color: var(--muted);">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge badge-soft">SPA</span>
+        <span class="badge badge-soft">LocalStorage</span>
+        <span class="badge badge-soft">Chart.js</span>
+      </div>
+      <div class="mt-2">© 2025–2026</div>
+    </div>
+  </aside>
+
+  <div id="overlay" class="overlay"></div>
+
+  <!-- MAIN -->
+  <main class="flex-grow-1">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="container-fluid py-3 px-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <button id="btnMenu" class="btn btn-light d-lg-none" aria-label="Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div>
+            <div class="fw-bold">Backoffice Bibliothèque</div>
+            <div class="small muted">Gestion Livres • Auteurs • KPI • API OpenLibrary</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge text-bg-light border"><i class="fa-solid fa-database"></i> Données persistantes</span>
+          <button class="btn btn-outline-danger btn-sm" id="btnReset">
+            <i class="fa-solid fa-trash"></i> Reset données
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content container-fluid">
+
+      <!-- DASHBOARD -->
+      <section id="dashboardView" class="view active">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h3 class="m-0">Dashboard</h3>
+          <span class="small muted">Vue synthèse + KPIs + graphique</span>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi d-flex align-items-center justify-content-between">
+              <div>
+                <div class="label">Total Livres</div>
+                <div class="value" id="kpiBooks">0</div>
+              </div>
+              <div class="icon"><i class="fa-solid fa-book"></i></div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi d-flex align-items-center justify-content-between">
+              <div>
+                <div class="label">Total Auteurs</div>
+                <div class="value" id="kpiAuthors">0</div>
+              </div>
+              <div class="icon"><i class="fa-solid fa-user-pen"></i></div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi d-flex align-items-center justify-content-between">
+              <div>
+                <div class="label">Année la plus récente</div>
+                <div class="value" id="kpiNewestYear">—</div>
+              </div>
+              <div class="icon"><i class="fa-solid fa-calendar"></i></div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi d-flex align-items-center justify-content-between">
+              <div>
+                <div class="label">Résultats API (dernier)</div>
+                <div class="value" id="kpiApiCount">0</div>
+              </div>
+              <div class="icon"><i class="fa-solid fa-cloud"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-7">
+            <div class="card-soft">
+              <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-chart-column"></i> Statistiques (Livres vs Auteurs)</span>
+                <span class="small muted">Chart.js</span>
+              </div>
+              <div class="card-body">
+                <canvas id="mainChart" height="110"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-5">
+            <div class="card-soft h-100">
+              <div class="card-header"><i class="fa-solid fa-bolt"></i> Actions rapides</div>
+              <div class="card-body">
+                <div class="detail-box">
+                  <div class="fw-bold">Conseils</div>
+                  <ul class="m-0 mt-2 small muted">
+                    <li>Ajoute d’abord des auteurs (Module 2), ensuite associe-les aux livres.</li>
+                    <li>Utilise la recherche & le tri dans le module Livres.</li>
+                    <li>Dans “API & Stats”, tu peux importer un livre depuis OpenLibrary.</li>
+                  </ul>
+                </div>
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+                  <button class="btn btn-outline-accent" data-go="booksView">
+                    <i class="fa-solid fa-book"></i> Gérer Livres
+                  </button>
+                  <button class="btn btn-outline-accent" data-go="authorsView">
+                    <i class="fa-solid fa-user-pen"></i> Gérer Auteurs
+                  </button>
+                  <button class="btn btn-outline-accent" data-go="apiView">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Ouvrir API
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODULE 1 : LIVRES (CRUD COMPLET) -->
+      <section id="booksView" class="view">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h3 class="m-0">Module Livres (CRUD complet)</h3>
+          <span class="small muted">Ajout • Recherche • Tri • Détail • Modifier • Supprimer • LocalStorage</span>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-5">
+            <div class="card-soft">
+              <div class="card-header"><i class="fa-solid fa-pen-to-square"></i> Formulaire Livre</div>
+              <div class="card-body">
+                <form id="bookForm" class="row g-2" novalidate>
+                  <input type="hidden" id="bookId" />
+                  <div class="col-12">
+                    <label class="form-label">Titre *</label>
+                    <input class="form-control" id="bookTitle" placeholder="Ex: Les Misérables" required />
+                    <div class="invalid-feedback">Titre obligatoire.</div>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Année *</label>
+                    <input class="form-control" id="bookYear" type="number" min="0" placeholder="Ex: 1862" required />
+                    <div class="invalid-feedback">Année obligatoire (>= 0).</div>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Auteur (optionnel)</label>
+                    <select class="form-select" id="bookAuthor">
+                      <option value="">— Aucun —</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 d-flex gap-2 mt-2">
+                    <button class="btn btn-accent" type="submit" id="bookSubmitBtn">
+                      <i class="fa-solid fa-plus"></i> Ajouter
+                    </button>
+                    <button class="btn btn-light border" type="button" id="bookCancelEditBtn" style="display:none;">
+                      Annuler édition
+                    </button>
+                  </div>
+                </form>
+
+                <hr class="my-3">
+
+                <div class="detail-box">
+                  <div class="fw-bold mb-2"><i class="fa-solid fa-id-card"></i> Fiche détaillée</div>
+                  <div id="bookDetail" class="small muted">
+                    Sélectionne un livre dans la liste pour voir le détail ici.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-7">
+            <div class="card-soft">
+              <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span><i class="fa-solid fa-list"></i> Liste des Livres</span>
+                <div class="d-flex gap-2 flex-wrap">
+                  <input id="bookSearch" class="form-control form-control-sm" style="width:220px" placeholder="Rechercher titre...">
+                  <select id="bookSort" class="form-select form-select-sm" style="width:220px">
+                    <option value="title_asc">Tri: Titre (A → Z)</option>
+                    <option value="title_desc">Tri: Titre (Z → A)</option>
+                    <option value="year_desc">Tri: Année (récent → ancien)</option>
+                    <option value="year_asc">Tri: Année (ancien → récent)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table align-middle">
+                    <thead>
+                      <tr>
+                        <th style="width:38%">Titre</th>
+                        <th style="width:12%">Année</th>
+                        <th style="width:30%">Auteur</th>
+                        <th style="width:20%" class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="booksTbody"></tbody>
+                  </table>
+                </div>
+
+                <div id="booksEmpty" class="text-center muted py-4" style="display:none;">
+                  Aucun livre pour le moment. Ajoute un livre via le formulaire.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODULE 2 : AUTEURS (CRUD LIGHT) -->
+      <section id="authorsView" class="view">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h3 class="m-0">Module Auteurs (CRUD simplifié)</h3>
+          <span class="small muted">Ajout • Liste • Suppression</span>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-5">
+            <div class="card-soft">
+              <div class="card-header"><i class="fa-solid fa-user-plus"></i> Ajouter un auteur</div>
+              <div class="card-body">
+                <form id="authorForm" class="row g-2" novalidate>
+                  <div class="col-12">
+                    <label class="form-label">Nom auteur *</label>
+                    <input class="form-control" id="authorName" placeholder="Ex: Victor Hugo" required />
+                    <div class="invalid-feedback">Nom obligatoire.</div>
+                  </div>
+                  <div class="col-12">
+                    <button class="btn btn-accent" type="submit">
+                      <i class="fa-solid fa-plus"></i> Ajouter
+                    </button>
+                  </div>
+                </form>
+                <div class="small muted mt-3">
+                  Astuce : Une fois l’auteur ajouté, tu peux l’associer à un livre dans le module Livres.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-7">
+            <div class="card-soft">
+              <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-users"></i> Liste des auteurs</span>
+                <span class="badge badge-soft" id="authorsCountBadge">0 auteur(s)</span>
+              </div>
+              <div class="card-body">
+                <ul class="list-group" id="authorsList"></ul>
+                <div id="authorsEmpty" class="text-center muted py-4" style="display:none;">
+                  Aucun auteur pour le moment.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODULE 3 : API & STATS -->
+      <section id="apiView" class="view">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h3 class="m-0">API & Statistiques</h3>
+          <span class="small muted">fetch OpenLibrary • KPI • Import • Graph</span>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-5">
+            <div class="card-soft">
+              <div class="card-header"><i class="fa-solid fa-magnifying-glass"></i> Recherche OpenLibrary</div>
+              <div class="card-body">
+                <div class="mb-2 small muted">
+                  Recherche un titre, puis tu peux importer un résultat dans tes livres.
+                </div>
+                <div class="input-group">
+                  <input id="apiQuery" class="form-control" placeholder="Ex: harry potter" />
+                  <button class="btn btn-accent" id="apiSearchBtn">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Chercher
+                  </button>
+                </div>
+                <div class="small muted mt-2" id="apiStatus">—</div>
+
+                <hr class="my-3">
+
+                <div class="fw-bold mb-2">Résultats</div>
+                <div id="apiResults" class="d-grid gap-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-7">
+            <div class="card-soft">
+              <div class="card-header"><i class="fa-solid fa-chart-pie"></i> Graphique “Livres par année” (top 8)</div>
+              <div class="card-body">
+                <canvas id="yearChart" height="110"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- DELETE MODAL (Bootstrap) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation"></i> Confirmation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body" id="confirmText">Êtes-vous sûr ?</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirmYesBtn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* =========================
+   STORAGE + STATE
+========================= */
+const LS_KEYS = {
+  books: "bibliotheca_books_v2",
+  authors: "bibliotheca_authors_v2"
+};
+
+let books = JSON.parse(localStorage.getItem(LS_KEYS.books)) || [];
+let authors = JSON.parse(localStorage.getItem(LS_KEYS.authors)) || [];
+let mainChart = null;
+let yearChart = null;
+
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function saveData(){
+  localStorage.setItem(LS_KEYS.books, JSON.stringify(books));
+  localStorage.setItem(LS_KEYS.authors, JSON.stringify(authors));
+}
+
+/* =========================
+   SPA NAV
+========================= */
+const navLinks = document.querySelectorAll(".nav-link[data-view]");
+const views = document.querySelectorAll("section.view");
+
+function showView(viewId){
+  views.forEach(v => v.classList.remove("active"));
+  document.getElementById(viewId).classList.add("active");
+
+  navLinks.forEach(a => a.classList.toggle("active", a.dataset.view === viewId));
+
+  // Mobile close
+  closeSidebarMobile();
+
+  refreshAll();
+}
+
+navLinks.forEach(a => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    showView(a.dataset.view);
+  });
+});
+
+document.querySelectorAll("[data-go]").forEach(btn=>{
+  btn.addEventListener("click", ()=> showView(btn.dataset.go));
+});
+
+/* =========================
+   MOBILE SIDEBAR
+========================= */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+document.getElementById("btnMenu").addEventListener("click", ()=>{
+  sidebar.classList.toggle("open");
+  overlay.classList.toggle("show");
+});
+overlay.addEventListener("click", closeSidebarMobile);
+function closeSidebarMobile(){
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+}
+
+/* =========================
+   MODULE 2: AUTHORS CRUD LIGHT
+========================= */
+const authorForm = document.getElementById("authorForm");
+const authorName = document.getElementById("authorName");
+const authorsList = document.getElementById("authorsList");
+const authorsEmpty = document.getElementById("authorsEmpty");
+const authorsCountBadge = document.getElementById("authorsCountBadge");
+
+authorForm.addEventListener("submit", (e)=>{
+  e.preventDefault();
+  authorForm.classList.remove("was-validated");
+
+  const name = authorName.value.trim();
+  if(!name){
+    authorForm.classList.add("was-validated");
+    return;
+  }
+
+  // prevent duplicates (case-insensitive)
+  const exists = authors.some(a => a.name.toLowerCase() === name.toLowerCase());
+  if(exists){
+    alert("Cet auteur existe déjà.");
+    return;
+  }
+
+  authors.push({ id: uid(), name });
+  authorName.value = "";
+  saveData();
+  refreshAll();
+});
+
+function deleteAuthor(authorId){
+  // Block deletion if used by books? (simple & pro)
+  const used = books.some(b => b.authorId === authorId);
+  if(used){
+    alert("Impossible de supprimer : cet auteur est associé à un ou plusieurs livres.");
+    return;
+  }
+  confirmAction("Supprimer cet auteur ?", ()=>{
+    authors = authors.filter(a => a.id !== authorId);
+    saveData();
+    refreshAll();
+  });
+}
+
+function renderAuthors(){
+  authorsCountBadge.textContent = `${authors.length} auteur(s)`;
+  authorsList.innerHTML = "";
+
+  if(authors.length === 0){
+    authorsEmpty.style.display = "block";
+    return;
+  }
+  authorsEmpty.style.display = "none";
+
+  authors
+    .slice()
+    .sort((a,b)=> a.name.localeCompare(b.name))
+    .forEach(a=>{
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex align-items-center justify-content-between";
+      li.innerHTML = `
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa-solid fa-user-pen text-secondary"></i>
+          <div>
+            <div class="fw-semibold">${escapeHtml(a.name)}</div>
+            <div class="small muted">ID: ${a.id.slice(0,8)}…</div>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
+      li.querySelector("button").addEventListener("click", ()=> deleteAuthor(a.id));
+      authorsList.appendChild(li);
+    });
+}
+
+/* =========================
+   MODULE 1: BOOKS CRUD COMPLETE
+========================= */
+const bookForm = document.getElementById("bookForm");
+const bookId = document.getElementById("bookId");
+const bookTitle = document.getElementById("bookTitle");
+const bookYear = document.getElementById("bookYear");
+const bookAuthor = document.getElementById("bookAuthor");
+const bookSubmitBtn = document.getElementById("bookSubmitBtn");
+const bookCancelEditBtn = document.getElementById("bookCancelEditBtn");
+const booksTbody = document.getElementById("booksTbody");
+const booksEmpty = document.getElementById("booksEmpty");
+const bookDetail = document.getElementById("bookDetail");
+const bookSearch = document.getElementById("bookSearch");
+const bookSort = document.getElementById("bookSort");
+
+bookForm.addEventListener("submit", (e)=>{
+  e.preventDefault();
+  bookForm.classList.remove("was-validated");
+
+  const title = bookTitle.value.trim();
+  const yearVal = bookYear.value;
+  const year = Number(yearVal);
+  const authorId = bookAuthor.value || "";
+
+  if(!title || yearVal === "" || Number.isNaN(year) || year < 0){
+    bookForm.classList.add("was-validated");
+    return;
+  }
+
+  if(bookId.value){ // EDIT
+    const id = bookId.value;
+    const idx = books.findIndex(b => b.id === id);
+    if(idx >= 0){
+      books[idx] = { ...books[idx], title, year, authorId };
+      saveData();
+      resetBookForm();
+      refreshAll();
+    }
+  } else { // ADD
+    books.push({ id: uid(), title, year, authorId, createdAt: Date.now() });
+    saveData();
+    bookTitle.value = "";
+    bookYear.value = "";
+    bookAuthor.value = "";
+    refreshAll();
+  }
+});
+
+bookCancelEditBtn.addEventListener("click", resetBookForm);
+
+function resetBookForm(){
+  bookId.value = "";
+  bookSubmitBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Ajouter`;
+  bookCancelEditBtn.style.display = "none";
+  bookForm.classList.remove("was-validated");
+  bookTitle.value = "";
+  bookYear.value = "";
+  bookAuthor.value = "";
+}
+
+bookSearch.addEventListener("input", ()=> renderBooks());
+bookSort.addEventListener("change", ()=> renderBooks());
+
+function editBook(id){
+  const b = books.find(x=>x.id===id);
+  if(!b) return;
+  bookId.value = b.id;
+  bookTitle.value = b.title;
+  bookYear.value = b.year;
+  bookAuthor.value = b.authorId || "";
+  bookSubmitBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Enregistrer`;
+  bookCancelEditBtn.style.display = "inline-block";
+  // scroll to form on small screens
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function deleteBook(id){
+  confirmAction("Supprimer ce livre ?", ()=>{
+    books = books.filter(b => b.id !== id);
+    saveData();
+    // clear detail if deleted one is selected
+    if(bookDetail.dataset.selectedId === id){
+      bookDetail.dataset.selectedId = "";
+      bookDetail.innerHTML = "Sélectionne un livre dans la liste pour voir le détail ici.";
+    }
+    refreshAll();
+  });
+}
+
+function selectBook(id){
+  const b = books.find(x=>x.id===id);
+  if(!b) return;
+
+  const author = authors.find(a=>a.id===b.authorId);
+  bookDetail.dataset.selectedId = id;
+  bookDetail.innerHTML = `
+    <div class="mb-1"><span class="fw-semibold">Titre :</span> ${escapeHtml(b.title)}</div>
+    <div class="mb-1"><span class="fw-semibold">Année :</span> ${b.year}</div>
+    <div class="mb-1"><span class="fw-semibold">Auteur :</span> ${author ? escapeHtml(author.name) : "<span class='muted'>—</span>"}</div>
+    <div class="small muted mt-2">ID: ${b.id}</div>
+  `;
+}
+
+function renderAuthorSelect(){
+  // keep first option
+  const current = bookAuthor.value || "";
+  bookAuthor.innerHTML = `<option value="">— Aucun —</option>`;
+  authors
+    .slice()
+    .sort((a,b)=> a.name.localeCompare(b.name))
+    .forEach(a=>{
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.name;
+      bookAuthor.appendChild(opt);
+    });
+  bookAuthor.value = current;
+}
+
+function renderBooks(){
+  const q = bookSearch.value.trim().toLowerCase();
+  const sort = bookSort.value;
+
+  let filtered = books.slice();
+
+  if(q){
+    filtered = filtered.filter(b => b.title.toLowerCase().includes(q));
+  }
+
+  // sort
+  filtered.sort((a,b)=>{
+    if(sort === "title_asc") return a.title.localeCompare(b.title);
+    if(sort === "title_desc") return b.title.localeCompare(a.title);
+    if(sort === "year_asc") return a.year - b.year;
+    if(sort === "year_desc") return b.year - a.year;
+    return 0;
+  });
+
+  booksTbody.innerHTML = "";
+
+  if(filtered.length === 0){
+    booksEmpty.style.display = "block";
+    return;
+  }
+  booksEmpty.style.display = "none";
+
+  filtered.forEach(b=>{
+    const author = authors.find(a=>a.id===b.authorId);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div class="fw-semibold">${escapeHtml(b.title)}</div>
+        <div class="small muted">Clique pour voir détail</div>
+      </td>
+      <td><span class="badge badge-soft">${b.year}</span></td>
+      <td>${author ? escapeHtml(author.name) : "<span class='muted'>—</span>"}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-light border me-1" title="Détail">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+        <button class="btn btn-sm btn-light border me-1" title="Modifier">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    `;
+
+    // detail on title click + eye
+    tr.querySelector("td").addEventListener("click", ()=> selectBook(b.id));
+    tr.querySelectorAll("button")[0].addEventListener("click", ()=> selectBook(b.id));
+    tr.querySelectorAll("button")[1].addEventListener("click", ()=> editBook(b.id));
+    tr.querySelectorAll("button")[2].addEventListener("click", ()=> deleteBook(b.id));
+
+    booksTbody.appendChild(tr);
+  });
+}
+
+/* =========================
+   DASHBOARD + CHARTS
+========================= */
+const kpiBooks = document.getElementById("kpiBooks");
+const kpiAuthors = document.getElementById("kpiAuthors");
+const kpiNewestYear = document.getElementById("kpiNewestYear");
+const kpiApiCount = document.getElementById("kpiApiCount");
+
+function calcNewestYear(){
+  if(books.length === 0) return "—";
+  let max = books[0].year;
+  for(let i=1;i<books.length;i++){
+    if(books[i].year > max) max = books[i].year;
+  }
+  return String(max);
+}
+
+function drawMainChart(){
+  const ctx = document.getElementById("mainChart");
+  if(mainChart) mainChart.destroy();
+
+  mainChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Livres", "Auteurs"],
+      datasets: [{
+        label: "Statistiques",
+        data: [books.length, authors.length]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: true, ticks: { precision:0 } } }
+    }
+  });
+}
+
+function drawYearChart(){
+  const ctx = document.getElementById("yearChart");
+  if(yearChart) yearChart.destroy();
+
+  // group by year
+  const map = new Map();
+  books.forEach(b=>{
+    const y = String(b.year);
+    map.set(y, (map.get(y) || 0) + 1);
+  });
+
+  // sort years desc, take top 8 by count
+  const entries = [...map.entries()]
+    .map(([year,count])=>({year, count}))
+    .sort((a,b)=> b.count - a.count)
+    .slice(0, 8);
+
+  const labels = entries.map(e=> e.year);
+  const data = entries.map(e=> e.count);
+
+  yearChart = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Nb de livres", data }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: true, ticks: { precision:0 } } }
+    }
+  });
+}
+
+function updateDashboardKPIs(){
+  kpiBooks.textContent = books.length;
+  kpiAuthors.textContent = authors.length;
+  kpiNewestYear.textContent = calcNewestYear();
+}
+
+/* =========================
+   API (OpenLibrary) + IMPORT
+========================= */
+const apiQuery = document.getElementById("apiQuery");
+const apiSearchBtn = document.getElementById("apiSearchBtn");
+const apiStatus = document.getElementById("apiStatus");
+const apiResults = document.getElementById("apiResults");
+
+let lastApiCount = Number(localStorage.getItem("bibliotheca_last_api_count")) || 0;
+kpiApiCount.textContent = lastApiCount;
+
+apiSearchBtn.addEventListener("click", ()=> runApiSearch());
+apiQuery.addEventListener("keyup", (e)=>{ if(e.key === "Enter") runApiSearch(); });
+
+function setApiCount(n){
+  lastApiCount = n;
+  localStorage.setItem("bibliotheca_last_api_count", String(n));
+  kpiApiCount.textContent = n;
+}
+
+function runApiSearch(){
+  const q = apiQuery.value.trim();
+  if(!q){
+    alert("Tape un mot-clé pour chercher.");
+    return;
+  }
+
+  apiStatus.textContent = "Chargement...";
+  apiResults.innerHTML = "";
+
+  // OpenLibrary Search API
+  fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(data => {
+      const docs = (data && data.docs) ? data.docs : [];
+      setApiCount(docs.length);
+      apiStatus.textContent = `OK — ${docs.length} résultat(s). Affichage top 6.`;
+
+      const top = docs.slice(0,6);
+      if(top.length === 0){
+        apiResults.innerHTML = `<div class="muted">Aucun résultat.</div>`;
+        return;
+      }
+
+      top.forEach(d=>{
+        const title = d.title || "Sans titre";
+        const year = d.first_publish_year ?? "";
+        const author = (d.author_name && d.author_name[0]) ? d.author_name[0] : "";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-light border text-start";
+        btn.innerHTML = `
+          <div class="fw-semibold">${escapeHtml(title)}</div>
+          <div class="small muted">
+            ${author ? "Auteur: " + escapeHtml(author) : "Auteur: —"}
+            ${year ? " • Année: " + year : ""}
+          </div>
+          <div class="small mt-1"><span class="badge badge-soft">Importer</span></div>
+        `;
+        btn.addEventListener("click", ()=> importFromApi({ title, year, author }));
+        apiResults.appendChild(btn);
+      });
+    })
+    .catch(err => {
+      console.error(err);
+      apiStatus.textContent = "Erreur API (voir console).";
+    });
+}
+
+function importFromApi({ title, year, author }){
+  // Try match author to existing, else create author automatically (optional but “pro”)
+  let authorId = "";
+  if(author && author.trim()){
+    let found = authors.find(a => a.name.toLowerCase() === author.trim().toLowerCase());
+    if(!found){
+      found = { id: uid(), name: author.trim() };
+      authors.push(found);
+    }
+    authorId = found.id;
+  }
+
+  const y = Number(year);
+  const safeYear = Number.isFinite(y) && y >= 0 ? y : 0;
+
+  books.push({ id: uid(), title: title.trim(), year: safeYear, authorId, createdAt: Date.now() });
+  saveData();
+  refreshAll();
+  alert("Livre importé avec succès !");
+  showView("booksView");
+  selectBook(books[books.length - 1].id);
+}
+
+/* =========================
+   CONFIRM MODAL
+========================= */
+const confirmModalEl = document.getElementById("confirmModal");
+const confirmModal = new bootstrap.Modal(confirmModalEl);
+const confirmText = document.getElementById("confirmText");
+const confirmYesBtn = document.getElementById("confirmYesBtn");
+let confirmCallback = null;
+
+function confirmAction(message, onYes){
+  confirmText.textContent = message;
+  confirmCallback = onYes;
+  confirmModal.show();
+}
+
+confirmYesBtn.addEventListener("click", ()=>{
+  confirmModal.hide();
+  if(typeof confirmCallback === "function") confirmCallback();
+  confirmCallback = null;
+});
+
+/* =========================
+   RESET BUTTON
+========================= */
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  confirmAction("Reset complet : supprimer tous les livres et auteurs ?", ()=>{
+    books = [];
+    authors = [];
+    setApiCount(0);
+    saveData();
+    resetBookForm();
+    bookDetail.innerHTML = "Sélectionne un livre dans la liste pour voir le détail ici.";
+    refreshAll();
+    showView("dashboardView");
+  });
+});
+
+/* =========================
+   REFRESH ALL
+========================= */
+function refreshAll(){
+  renderAuthorSelect();
+  renderAuthors();
+  renderBooks();
+  updateDashboardKPIs();
+  drawMainChart();
+  drawYearChart();
+}
+
+/* =========================
+   HELPERS
+========================= */
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* =========================
+   INIT
+========================= */
+refreshAll();
+</script>
+
+</body>
+</html>
